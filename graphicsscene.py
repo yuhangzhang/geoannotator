@@ -41,10 +41,10 @@ class GraphicsScene(QGraphicsScene):
         if event.button() == Qt.LeftButton:
             self.draw_switch = True
 
-            if event.pos().x()>=0 \
-                    and event.pos().x()<self.pixmap.width() \
-                    and event.pos().y()>=0 \
-                    and event.pos().y()<self.pixmap.height():
+            if event.scenePos().x()>=0 \
+                    and event.scenePos().x()<self.pixmap.width() \
+                    and event.scenePos().y()>=0 \
+                    and event.scenePos().y()<self.pixmap.height():
                 self.lastpos = event.pos()
                 self.poly = [self.lastpos]
             else:
@@ -59,20 +59,20 @@ class GraphicsScene(QGraphicsScene):
         pos = event.scenePos()
 
         if self.draw_switch == True \
-                and event.pos().x()>=0 \
-                and event.pos().x()<self.pixmap.width() \
-                and event.pos().y()>=0 \
-                and event.pos().y()<self.pixmap.height():
+                and pos.x()>=0 \
+                and pos.x()<self.pixmap.width() \
+                and pos.y()>=0 \
+                and pos.y()<self.pixmap.height():
             if self.lastpos is not None:
                 # show trace on the screen
                 path = QPainterPath()
                 path.setFillRule(Qt.WindingFill)
                 path.moveTo(self.lastpos)
                 path.lineTo(pos)
-                self.pathset.append(self.addPath(path, pen=QPen(Qt.white)))
+                self.pathset.append(self.addPath(path, pen=QPen(Qt.red)))
+                self.poly.append(pos)  # keep vertex for label generation later
 
-            self.poly.append(pos)   #keep vertex for label generation later
-            self.lastpos = pos #update
+            self.lastpos = pos  # update
 
     def mouseReleaseEvent(self, event):
         super(GraphicsScene, self).mousePressEvent(event)
@@ -81,15 +81,16 @@ class GraphicsScene(QGraphicsScene):
             self.draw_switch = False
             label = self.dialog.gettext()   #ask for label
 
-            if label[1]==True and and len(label[1]>0) len(self.poly)>0:  #if user input a label
+            if label[1]==True and len(label[0])>0 and len(self.poly)>0:  #if user input a label
                 # point the label on screen
                 poly = QPolygon()
                 for p in self.poly:
                     poly.append(p.toPoint())
+                    #print(p)
                 brush = QBrush()
                 brush.setColor(Qt.white)
                 brush.setStyle(Qt.Dense5Pattern)
-                self.addPolygon(QPolygonF(poly),brush=brush)
+                self.addPolygon(QPolygonF(poly),pen=QPen(Qt.red), brush=brush)
 
                 # save the label on backend
                 x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
