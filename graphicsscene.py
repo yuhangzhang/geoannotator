@@ -82,18 +82,24 @@ class GraphicsScene(QGraphicsScene):
             label = self.dialog.gettext()   #ask for label
 
             if label[1]==True and len(label[0])>0 and len(self.poly)>0:  #if user input a label
-                # point the label on screen
-                poly = QPolygon()
-                for p in self.poly:
-                    poly.append(p.toPoint())
-                    #print(p)
-                brush = QBrush()
-                brush.setColor(Qt.white)
-                brush.setStyle(Qt.Dense5Pattern)
-                self.addPolygon(QPolygonF(poly),pen=QPen(Qt.red), brush=brush)
+
 
                 # save the label on backend
-                x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
+                if len(self.poly)>1:
+                    # point the label on screen
+                    poly = QPolygon()
+                    for p in self.poly:
+                        poly.append(p.toPoint())
+                        # print(p)
+                    brush = QBrush()
+                    brush.setColor(Qt.white)
+                    brush.setStyle(Qt.Dense5Pattern)
+                    self.addPolygon(QPolygonF(poly), pen=QPen(Qt.red), brush=brush)
+                    x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
+                else:
+                    self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
+                    x = self.poly[0].toPoint().x()
+                    y = self.poly[0].toPoint().y()
                 self.label_all[y, x] = int(label[0])
 
             # remove the trace painted so far
