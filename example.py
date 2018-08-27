@@ -41,14 +41,8 @@ class AnnotationWindow(QWidget):
 
 
 if __name__ == "__main__":
-
-#    x=myshapefile()
-#    y=x.getimage(1600,600)
-#    cv2.imwrite('gui.png',y)
-
     app = QApplication(sys.argv)
     widget = AnnotationWindow()
     widget.resize(640, 480)
     widget.show()
-
     sys.exit(app.exec_())
