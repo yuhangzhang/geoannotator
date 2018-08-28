@@ -1,7 +1,9 @@
 import numpy as np
 import shapefile as sf
 import sklearn.decomposition as sd
-
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 
 class GeoFile:
     def __init__(self, filename):
@@ -112,6 +114,13 @@ class GeoFile:
         img_interpolate[:, :, 0] = (img_interpolate[:, :, 0]) * 255 / (maxr + (maxr - minr)*0.25)
         img_interpolate[:, :, 1] = (img_interpolate[:, :, 1]) * 255 / (maxg + (maxg - ming)*0.25)
         img_interpolate[:, :, 2] = (img_interpolate[:, :, 2]) * 255 / (maxb + (maxb - minb)*0.25)
+
+        cmap = cm.ScalarMappable(colors.Normalize(
+                                                    vmin=(minr+(maxr - minr)*0.25)/ (maxr + (maxr - minr)*0.25)*255,
+                                                    vmax=255),cmap=plt.get_cmap('jet')
+                                                 )
+
+        img_interpolate=cmap.to_rgba(img_interpolate[:,:,0])[:,:,0:3]*(img_interpolate>0)*255
 
         return(img_interpolate.astype(np.uint8))
 
