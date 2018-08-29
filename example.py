@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import QRectF
 
 from graphicsscene import GraphicsScene
+from graphicsview import GraphicsView
 
 
 
@@ -20,7 +21,7 @@ class AnnotationWindow(QWidget):
         super(AnnotationWindow,self).__init__()
 
         self.scene = GraphicsScene()
-        self.view = QGraphicsView(self.scene)
+        self.view = GraphicsView(self.scene)
 
         self.button = QPushButton("load image")
         self.button.clicked.connect(self.loadgeofile)
