@@ -2,6 +2,8 @@ import numpy as np
 
 from skimage.draw import polygon
 
+import matplotlib.pyplot as plt
+
 from PyQt5.QtWidgets import QGraphicsScene
 
 from PyQt5.QtGui import QImage
@@ -11,26 +13,30 @@ from PyQt5.QtGui import QPolygonF
 from PyQt5.QtGui import QBrush
 from PyQt5.QtGui import QPainterPath
 from PyQt5.QtGui import QPen
+from PyQt5.QtGui import QColor
 
 from PyQt5.QtCore import Qt
 
 from geofile import GeoFile
 from dialog import Dialog
+from dialogdropdown import DialogDropDown
 
 class GraphicsScene(QGraphicsScene):
     def __init__(self):
         super(GraphicsScene, self).__init__()
         self.draw_switch = False
-        self.dialog = Dialog()
+        #self.dialog = Dialog()
+        self.dialog = DialogDropDown()
         self.pixmap = QPixmap()
         self.label_all = np.zeros([0,0])
+        self.pixmaphandle = None
 
     def loadgeofile(self,filename, width, height):
         self.geofile = GeoFile(filename)
         arr = self.geofile.getimage(width, height)
         qimg = QImage(arr, width, height, QImage.Format_RGB888)
         self.pixmap = QPixmap(qimg)
-        self.addPixmap(self.pixmap)
+        self.pixmaphandle = self.addPixmap(self.pixmap)
 
         self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
 
@@ -92,9 +98,9 @@ class GraphicsScene(QGraphicsScene):
                         poly.append(p.toPoint())
                         # print(p)
                     brush = QBrush()
-                    brush.setColor(Qt.white)
-                    brush.setStyle(Qt.Dense5Pattern)
-                    self.addPolygon(QPolygonF(poly), pen=QPen(Qt.red), brush=brush)
+                    brush.setColor(QColor(*[c*255 for c in plt.get_cmap('tab10').colors[int(label[0])-1]]))
+                    brush.setStyle(Qt.SolidPattern)
+                    self.addPolygon(QPolygonF(poly), pen=QPen(Qt.white), brush=brush)
                     x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
                 else:
                     self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
@@ -117,3 +123,15 @@ class GraphicsScene(QGraphicsScene):
                         np.savetxt(fw, np.append(p[0:-2],self.label_all[h,w]).reshape(1, -1), fmt='%s')
 
         fw.close()
+
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Space:
+            if self.pixmaphandle is not None:
+                self.pixmaphandle.setZValue(1)
+
+
+    def keyReleaseEvent(self, event):
+        if event.key() == Qt.Key_Space:
+            if self.pixmaphandle is not None:
+                self.pixmaphandle.setZValue(-1)
