@@ -25,8 +25,8 @@ class GraphicsView(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         super(GraphicsView, self).mouseMoveEvent(event)
-        if self.drag_switch == True:
-            offset = event.pos()-self.lastpos
+        if self.drag_switch == True and self.lastpos is not None:
+            offset = self.lastpos - event.pos()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value()+ offset.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + offset.y())
             self.show()

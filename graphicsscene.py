@@ -98,9 +98,10 @@ class GraphicsScene(QGraphicsScene):
                         poly.append(p.toPoint())
                         # print(p)
                     brush = QBrush()
-                    brush.setColor(QColor(*[c*255 for c in plt.get_cmap('tab10').colors[int(label[0])-1]]))
+                    labelcolor = QColor(*[c*255 for c in plt.get_cmap('tab10').colors[int(label[0])-1]])
+                    brush.setColor(labelcolor)
                     brush.setStyle(Qt.SolidPattern)
-                    self.addPolygon(QPolygonF(poly), pen=QPen(Qt.white), brush=brush)
+                    self.addPolygon(QPolygonF(poly), pen=QPen(labelcolor), brush=brush)
                     x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
                 else:
                     self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
