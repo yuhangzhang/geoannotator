@@ -40,7 +40,7 @@ class AnnotationWindow(QWidget):
         buttonlayout = QHBoxLayout()
         buttonlayout.addWidget(self.filebutton)
         buttonlayout.addWidget(self.dbbutton)
-        layout.addWidget(buttonlayout)
+        layout.addLayout(buttonlayout)
 
 
         sublayout = QHBoxLayout()

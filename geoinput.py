@@ -79,6 +79,8 @@ class GeoInput():
         updis = np.zeros([height, width], dtype=np.int)
         img_interpolate = np.zeros([height, width, 3], dtype=np.float32)
 
+        vboundary = np.zeros([2,width],dtype=np.int)
+
         for w in range(img.shape[1]):
             dis = 0
             lastpoint = img[0, w, :]
@@ -91,6 +93,8 @@ class GeoInput():
                     img_interpolate[h, w, :] = img[h, w, :]
                     dis = 0
                     lastpoint = img[h, w, :]
+                    if vboundary[0,w]==0:
+                        vboundary[0, w]=h
 
         for w in range(img.shape[1]):
             dis = 0
@@ -112,16 +116,18 @@ class GeoInput():
                 else:
                     dis = 0
                     lastpoint = img[h, w, :]
+                    if vboundary[1,w]==0:
+                        vboundary[1, w]=h
 
         img = img_interpolate
         img_interpolate = np.zeros([height, width, 3], dtype=np.float32)
 
-        # linear intepolation along vertical direction
+        # linear intepolation along horizontal direction
         for h in range(img.shape[0]):
             dis = 0
             lastpoint = img[h, 0, :]
             for w in range(img.shape[1]):
-                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and h<=vboundary[1,w] and h>=vboundary[0,w]:
                     dis = dis + 1
                     img_interpolate[h, w, :] = lastpoint
                     updis[h, w] = dis
@@ -139,10 +145,11 @@ class GeoInput():
                     if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
                         img_interpolate[h, w, :] = lastpoint
                         # print("fake color")
-                    else:
+                    elif h<=vboundary[1,w] and h>=vboundary[0,w]:
                         img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
                                     dis + updis[h, w])
-                        # print("refine color")
+                    else:
+                        img_interpolate[h,w,:] = 0
                     dis = dis + 1
                 elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
                     # print("top")
