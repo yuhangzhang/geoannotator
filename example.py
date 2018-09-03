@@ -28,14 +28,19 @@ class AnnotationWindow(QWidget):
         self.scene = GraphicsScene()
         self.view = GraphicsView(self.scene)
 
-        self.button = QPushButton("load image")
-        self.button.clicked.connect(self.loadgeofile)
+        self.filebutton = QPushButton("open file")
+        self.filebutton.clicked.connect(self.openfile)
+        self.dbbutton = QPushButton("load database")
+        self.dbbutton.clicked.connect(self.loaddatabase)
 
         self.exportbutton = QPushButton("export annotation")
         self.exportbutton.clicked.connect(self.export)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.button)
+        buttonlayout = QHBoxLayout()
+        buttonlayout.addWidget(self.filebutton)
+        buttonlayout.addWidget(self.dbbutton)
+        layout.addWidget(buttonlayout)
 
 
         sublayout = QHBoxLayout()
@@ -72,11 +77,14 @@ class AnnotationWindow(QWidget):
         self.setLayout(layout)
         self.setWindowTitle("GeoAnnotator")
 
-    def loadgeofile(self):
+    def openfile(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file','/g/data1a/ge3/AEM_Model','shapefile (*.shp)')
 
         if len(fname[0])>0:
-            self.scene.loadgeofile(fname[0],800,400)
+            self.scene.openfile(fname[0],800,400)
+
+    def loaddatabase(self):
+        self.scene.loaddatabase(800,400)
 
     def export(self):
         fname = QFileDialog.getSaveFileName(self, 'Save to')

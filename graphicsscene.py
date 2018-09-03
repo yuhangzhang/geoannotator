@@ -32,15 +32,22 @@ class GraphicsScene(QGraphicsScene):
         self.label_all = np.zeros([0,0])
         self.pixmaphandle = None
 
-    def loadgeofile(self,filename, width, height):
-        #self.geofile = GeoFile(filename)
+    def loaddatabase(self, width, height):
         self.geofile = GeoDataBase()
         arr = self.geofile.getimage(width, height)
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888).rgbSwapped()
         self.pixmap = QPixmap(qimg)
         self.pixmaphandle = self.addPixmap(self.pixmap)
-
         self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
+
+    def openfile(self, filename, width, height):
+        self.geofile = GeoFile(filename)
+        arr = self.geofile.getimage(width, height)
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888).rgbSwapped()
+        self.pixmap = QPixmap(qimg)
+        self.pixmaphandle = self.addPixmap(self.pixmap)
+        self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
+
 
     def mousePressEvent(self, event):
         super(GraphicsScene, self).mousePressEvent(event)
@@ -77,7 +84,7 @@ class GraphicsScene(QGraphicsScene):
                 path.setFillRule(Qt.WindingFill)
                 path.moveTo(self.lastpos)
                 path.lineTo(pos)
-                self.pathset.append(self.addPath(path, pen=QPen(Qt.red)))
+                self.pathset.append(self.addPath(path, pen=QPen(Qt.white)))
                 self.poly.append(pos)  # keep vertex for label generation later
 
             self.lastpos = pos  # update
