@@ -18,6 +18,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt
 
 from geofile import GeoFile
+from geodatabase import GeoDataBase
 from dialog import Dialog
 from dialogdropdown import DialogDropDown
 
@@ -32,9 +33,10 @@ class GraphicsScene(QGraphicsScene):
         self.pixmaphandle = None
 
     def loadgeofile(self,filename, width, height):
-        self.geofile = GeoFile(filename)
+        #self.geofile = GeoFile(filename)
+        self.geofile = GeoDataBase()
         arr = self.geofile.getimage(width, height)
-        qimg = QImage(arr, width, height, QImage.Format_RGB888)
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888).rgbSwapped()
         self.pixmap = QPixmap(qimg)
         self.pixmaphandle = self.addPixmap(self.pixmap)
 

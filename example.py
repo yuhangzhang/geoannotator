@@ -76,7 +76,7 @@ class AnnotationWindow(QWidget):
         fname = QFileDialog.getOpenFileName(self, 'Open file','/g/data1a/ge3/AEM_Model','shapefile (*.shp)')
 
         if len(fname[0])>0:
-            self.scene.loadgeofile(fname[0],1600,800)
+            self.scene.loadgeofile(fname[0],800,400)
 
     def export(self):
         fname = QFileDialog.getSaveFileName(self, 'Save to')

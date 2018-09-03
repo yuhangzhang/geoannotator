@@ -1,1 +1,1 @@
-__all__ = ["dialog", "geofile", "graphicsscene"]
+__all__ = ["dialog", "geofile", "geodatabase", "graphicsscene"]
