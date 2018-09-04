@@ -6,6 +6,8 @@ import matplotlib.colors as colors
 import psycopg2
 import cv2
 
+import time
+
 class GeoInput():
     def __init__(self, inputrecord):
         # map 3D points onto a 2D plane
@@ -20,6 +22,30 @@ class GeoInput():
         self.minw = self.point[:, -2].astype(float).min()
         self.maxh = self.point[:, -1].astype(float).max()
         self.maxw = self.point[:, -2].astype(float).max()
+
+    def getimagexy(self, width, height):
+        c = self.point[:, 10:12].astype(float)
+        c = np.linalg.norm(c - c[0,:],axis=1)
+        a = self.point[:,-2]-self.point[0,-2]
+        b = (c**2-a**2)**0.5
+
+        img = np.zeros([height, width, 3], dtype=float)
+        img.fill(200)
+
+        maxa = a.max()
+        mina = a.min()
+        maxb = b.max()
+        minb = b.min()
+
+        a = (a-mina)/(maxa-mina)*(width-1)
+        b = (b - minb) / (maxa-mina)*(width-1)
+        a = a.astype(int)
+        b = b.astype(int)
+
+        for i in range(len(a)):
+            img[b[i]:b[i]+2,a[i]:a[i]+2,:]=[255,0,0]
+
+        return img.astype(np.uint8)
 
     # visualise the raw points as an RGB image of specified size, each pixel may correspond to multiple points
     def getimage(self, width, height):
@@ -80,6 +106,7 @@ class GeoInput():
         img_interpolate = np.zeros([height, width, 3], dtype=np.float32)
 
         vboundary = np.zeros([2,width],dtype=np.int)
+        vboundary[1,:] = height
 
         for w in range(img.shape[1]):
             dis = 0
@@ -93,7 +120,7 @@ class GeoInput():
                     img_interpolate[h, w, :] = img[h, w, :]
                     dis = 0
                     lastpoint = img[h, w, :]
-                    if vboundary[0,w]==0:
+                    if vboundary[0,w]<h:
                         vboundary[0, w]=h
 
         for w in range(img.shape[1]):
@@ -104,19 +131,16 @@ class GeoInput():
                         img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
                     if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
                         img_interpolate[h, w, :] = lastpoint
-                        # print("fake color")
                     else:
                         img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
                                     dis + updis[h, w])
-                        # print("refine color")
                     dis = dis + 1
                 elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
-                    # print("top")
                     break
                 else:
                     dis = 0
                     lastpoint = img[h, w, :]
-                    if vboundary[1,w]==0:
+                    if vboundary[1,w]>h:
                         vboundary[1, w]=h
 
         img = img_interpolate
@@ -127,6 +151,7 @@ class GeoInput():
             dis = 0
             lastpoint = img[h, 0, :]
             for w in range(img.shape[1]):
+
                 if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and h<=vboundary[1,w] and h>=vboundary[0,w]:
                     dis = dis + 1
                     img_interpolate[h, w, :] = lastpoint
@@ -138,13 +163,13 @@ class GeoInput():
 
         for h in range(img.shape[0]):
             dis = 0
+            dis = 0
             lastpoint = img[h, -1, :]
             for w in reversed(range(img_interpolate.shape[1])):
                 if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and abs(
                         img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
                     if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
                         img_interpolate[h, w, :] = lastpoint
-                        # print("fake color")
                     elif h<=vboundary[1,w] and h>=vboundary[0,w]:
                         img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
                                     dis + updis[h, w])
@@ -152,7 +177,6 @@ class GeoInput():
                         img_interpolate[h,w,:] = 0
                     dis = dis + 1
                 elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
-                    # print("top")
                     break
                 else:
                     dis = 0

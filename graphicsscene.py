@@ -29,15 +29,23 @@ class GraphicsScene(QGraphicsScene):
         #self.dialog = Dialog()
         self.dialog = DialogDropDown()
         self.pixmap = QPixmap()
+        self.pixmaptopdown = QPixmap()
         self.label_all = np.zeros([0,0])
         self.pixmaphandle = None
 
     def loaddatabase(self, width, height):
         self.geofile = GeoDataBase()
+        arr = self.geofile.getimagexy(width, int(height/4))
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
+        self.pixmaptopdown = QPixmap(qimg)
+        self.pixmaptopdownhandle = self.addPixmap(self.pixmaptopdown)
+
         arr = self.geofile.getimage(width, height)
-        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888).rgbSwapped()
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmap = QPixmap(qimg)
         self.pixmaphandle = self.addPixmap(self.pixmap)
+        self.pixmaptopdownhandle.moveBy(0, -self.pixmaptopdown.height()-20)
+
         self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
 
     def openfile(self, filename, width, height):
@@ -55,6 +63,8 @@ class GraphicsScene(QGraphicsScene):
         # prepare for a new crop
         if event.button() == Qt.LeftButton:
             self.draw_switch = True
+
+            print(event.scenePos().x(), event.scenePos().y())
 
             if event.scenePos().x()>=0 \
                     and event.scenePos().x()<self.pixmap.width() \
@@ -92,31 +102,38 @@ class GraphicsScene(QGraphicsScene):
     def mouseReleaseEvent(self, event):
         super(GraphicsScene, self).mousePressEvent(event)
 
+        pos = event.scenePos()
+
         if event.button() == Qt.LeftButton:
             self.draw_switch = False
-            label = self.dialog.gettext()   #ask for label
 
-            if label[1]==True and len(label[0])>0 and len(self.poly)>0:  #if user input a label
+            if pos.x()>=0 \
+            and pos.x()<self.pixmap.width() \
+            and pos.y()>=0 \
+            and pos.y()<self.pixmap.height():
+                label = self.dialog.gettext()   #ask for label
+
+                if label[1]==True and len(label[0])>0 and len(self.poly)>0:  #if user input a label
 
 
-                # save the label on backend
-                if len(self.poly)>1:
-                    # point the label on screen
-                    poly = QPolygon()
-                    for p in self.poly:
-                        poly.append(p.toPoint())
-                        # print(p)
-                    brush = QBrush()
-                    labelcolor = QColor(*[c*255 for c in plt.get_cmap('tab10').colors[int(label[0])-1]])
-                    brush.setColor(labelcolor)
-                    brush.setStyle(Qt.SolidPattern)
-                    self.addPolygon(QPolygonF(poly), pen=QPen(labelcolor), brush=brush)
-                    x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
-                else:
-                    self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
-                    x = self.poly[0].toPoint().x()
-                    y = self.poly[0].toPoint().y()
-                self.label_all[y, x] = int(label[0])
+                    # save the label on backend
+                    if len(self.poly)>1:
+                        # point the label on screen
+                        poly = QPolygon()
+                        for p in self.poly:
+                            poly.append(p.toPoint())
+                            # print(p)
+                        brush = QBrush()
+                        labelcolor = QColor(*[c*255 for c in plt.get_cmap('tab10').colors[int(label[0])-1]])
+                        brush.setColor(labelcolor)
+                        brush.setStyle(Qt.SolidPattern)
+                        self.addPolygon(QPolygonF(poly), pen=QPen(labelcolor), brush=brush)
+                        x, y = polygon([p.toPoint().x() for p in self.poly],[p.toPoint().y() for p in self.poly])
+                    else:
+                        self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
+                        x = self.poly[0].toPoint().x()
+                        y = self.poly[0].toPoint().y()
+                    self.label_all[y, x] = int(label[0])
 
             # remove the trace painted so far
             for p in self.pathset:
