@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn import preprocessing
 import sklearn.decomposition as sd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -23,10 +24,15 @@ class GeoInput():
         self.maxh = self.point[:, -1].astype(float).max()
         self.maxw = self.point[:, -2].astype(float).max()
 
-    def getimagexy(self, width, height):
+        self.feature = self.point[:,[2:10,12,14]]
+        self.whitener = preprocessing.StandardScaler().fit(self.feature)
+        self.feature = self.whitener.transform(self.feature)
+
+
+    def getimagetopdown(self, width, height):
         c = self.point[:, 10:12].astype(float)
         c = np.linalg.norm(c - c[0,:],axis=1)
-        a = self.point[:,-2]-self.point[0,-2]
+        a = self.point[:,-2].astype(float)-float(self.point[0,-2])
         b = (c**2-a**2)**0.5
 
         img = np.zeros([height, width, 3], dtype=float)
@@ -48,12 +54,13 @@ class GeoInput():
         return img.astype(np.uint8)
 
     # visualise the raw points as an RGB image of specified size, each pixel may correspond to multiple points
-    def getimage(self, width, height):
+    def getimageunderground(self, width, height):
         # width = int((self.maxw-self.minw+1)/2)
 
         img = np.zeros([height, width, 3], dtype=float)
 
         self.bucket = [[[] for h in range(height)] for w in range(width)]
+        self.featurebucket = [[[] for h in range(height)] for w in range(width)]
 
         # update point on-image coordinates according to image width and height
         self.point[:, -1] = np.round(
@@ -66,12 +73,14 @@ class GeoInput():
         bucket_size = np.zeros([height, width, 3], dtype=np.int)
 
         # update image
-        for p in self.point:
+        for i in range(len(self.point)):
+            p = self.point[i]
             if p[1] != 'Surface':
                 inversedh = height - int(float(p[-1])) - 1
                 originalw = int(float(p[-2]))
 
                 self.bucket[originalw][inversedh].append(p)
+                self.featurebucket[originalw][inversedh].append(self.feature[i])
                 img[inversedh, originalw, 0] = img[inversedh, originalw, 0] + float(p[2])
                 img[inversedh, originalw, 1] = img[inversedh, originalw, 1] + float(p[4])
                 img[inversedh, originalw, 2] = img[inversedh, originalw, 2] + float(p[5])
@@ -203,4 +212,6 @@ class GeoInput():
     def getpoint(self, w, h):
         return self.bucket[w][h]
 
+    def getfeature(self,w,h):
+        return self.featurebucket[w][h]
 

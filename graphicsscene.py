@@ -35,12 +35,12 @@ class GraphicsScene(QGraphicsScene):
 
     def loaddatabase(self, width, height):
         self.geofile = GeoDataBase()
-        arr = self.geofile.getimagexy(width, int(height/4))
+        arr = self.geofile.getimagetopdown(width, int(height/4))
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmaptopdown = QPixmap(qimg)
         self.pixmaptopdownhandle = self.addPixmap(self.pixmaptopdown)
 
-        arr = self.geofile.getimage(width, height)
+        arr = self.geofile.getimageunderground(width, height)
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmap = QPixmap(qimg)
         self.pixmaphandle = self.addPixmap(self.pixmap)
@@ -50,10 +50,17 @@ class GraphicsScene(QGraphicsScene):
 
     def openfile(self, filename, width, height):
         self.geofile = GeoFile(filename)
-        arr = self.geofile.getimage(width, height)
-        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888).rgbSwapped()
+        arr = self.geofile.getimagetopdown(width, int(height/4))
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
+        self.pixmaptopdown = QPixmap(qimg)
+        self.pixmaptopdownhandle = self.addPixmap(self.pixmaptopdown)
+
+        arr = self.geofile.getimageunderground(width, height)
+        qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmap = QPixmap(qimg)
         self.pixmaphandle = self.addPixmap(self.pixmap)
+        self.pixmaptopdownhandle.moveBy(0, -self.pixmaptopdown.height()-20)
+
         self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
 
 
@@ -151,6 +158,16 @@ class GraphicsScene(QGraphicsScene):
 
         fw.close()
 
+    def getannotatedfeature(self):
+        feature = []
+        label = []
+        for h in range(self.label_all.shape[0]):
+            for w in range(self.label_all.shape[1]):
+                if self.label_all[h,w]>0:
+                    morefeature = self.geofile.getfeature(w, h)
+                    feature.extend(morefeature)
+                    label = label.extend([self.label_all[h,w]]*len(morefeature))
+        return feature, label
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Space:
