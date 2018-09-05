@@ -1,8 +1,8 @@
 import numpy as np
 import psycopg2
-from geoinput import GeoInput
+from geodata import GeoData
 
-class GeoDataBase(GeoInput):
+class GeoDataBase(GeoData):
     def __init__(self):
         conn = psycopg2.connect(host="localhost", database="DataLake", user="yuhang")
 

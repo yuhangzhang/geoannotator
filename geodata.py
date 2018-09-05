@@ -9,7 +9,7 @@ import cv2
 
 import time
 
-class GeoInput():
+class GeoData():
     def __init__(self, inputrecord):
         # map 3D points onto a 2D plane
         # project x, y onto a line
@@ -24,10 +24,14 @@ class GeoInput():
         self.maxh = self.point[:, -1].astype(float).max()
         self.maxw = self.point[:, -2].astype(float).max()
 
-        self.feature = self.point[:,[2:10,12,14]]
+
+        self.feature = np.hstack([self.point[:,2:10], self.point[:,12].reshape(-1, 1), self.point[:,14].reshape(-1, 1)])
+        #self.feature = self.point[:,[x for x in range(2,10)].extend([12,14])]
+        print(self.feature.shape)
         self.whitener = preprocessing.StandardScaler().fit(self.feature)
         self.feature = self.whitener.transform(self.feature)
 
+        self.manuallabel = np.zeros([0,0])
 
     def getimagetopdown(self, width, height):
         c = self.point[:, 10:12].astype(float)
@@ -55,7 +59,8 @@ class GeoInput():
 
     # visualise the raw points as an RGB image of specified size, each pixel may correspond to multiple points
     def getimageunderground(self, width, height):
-        # width = int((self.maxw-self.minw+1)/2)
+
+        self.manuallabel = np.zeros([height, width], dtype=int)
 
         img = np.zeros([height, width, 3], dtype=float)
 
@@ -215,3 +220,32 @@ class GeoInput():
     def getfeature(self,w,h):
         return self.featurebucket[w][h]
 
+    def get_annotated_point(self):
+        point = []
+        label = []
+        for h in range(self.manuallabel.shape[0]):
+            for w in range(self.manuallabel.shape[1]):
+                if self.manuallabel[h, w] > 0:
+                    morepoints = self.getpoint(w, h)
+                    point.extend(morepoints)
+                    label.extend([self.manuallabel[h, w]] * len(morepoints))
+        return point, label
+
+    def get_annotated_feature(self):
+        feature = []
+        label = []
+        for h in range(self.manuallabel.shape[0]):
+            for w in range(self.manuallabel.shape[1]):
+                if self.manuallabel[h, w] > 0:
+                    morefeature = self.getfeature(w, h)
+                    feature.extend(morefeature)
+                    label.extend([self.manuallabel[h, w]] * len(morefeature))
+        return feature, label
+
+    def get_prediction(self, model):
+        self.model = model
+        x,y = self.get_annotated_feature()
+        print(x,y)
+        self.model.fit(x,y)
+        self.prediction = self.model.predict(self.feature)
+        return

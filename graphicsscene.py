@@ -22,46 +22,47 @@ from geodatabase import GeoDataBase
 from dialog import Dialog
 from dialogdropdown import DialogDropDown
 
+from metric_learn import LMNN
+
 class GraphicsScene(QGraphicsScene):
     def __init__(self):
         super(GraphicsScene, self).__init__()
         self.draw_switch = False
         #self.dialog = Dialog()
         self.dialog = DialogDropDown()
-        self.pixmap = QPixmap()
+        self.pixmapunderground = QPixmap()
         self.pixmaptopdown = QPixmap()
-        self.label_all = np.zeros([0,0])
-        self.pixmaphandle = None
+        self.pixmapprediction = QPixmap()
+        self.pixmapundergroundhandle = None
+        self.pixmappredictionhandle = None
 
     def loaddatabase(self, width, height):
-        self.geofile = GeoDataBase()
-        arr = self.geofile.getimagetopdown(width, int(height/4))
+        self.geodata = GeoDataBase()
+        arr = self.geodata.getimagetopdown(width, int(height / 4))
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmaptopdown = QPixmap(qimg)
         self.pixmaptopdownhandle = self.addPixmap(self.pixmaptopdown)
 
-        arr = self.geofile.getimageunderground(width, height)
+        arr = self.geodata.getimageunderground(width, height)
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
-        self.pixmap = QPixmap(qimg)
-        self.pixmaphandle = self.addPixmap(self.pixmap)
+        self.pixmapunderground = QPixmap(qimg)
+        self.pixmapundergroundhandle = self.addPixmap(self.pixmapunderground)
         self.pixmaptopdownhandle.moveBy(0, -self.pixmaptopdown.height()-20)
 
-        self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
 
     def openfile(self, filename, width, height):
-        self.geofile = GeoFile(filename)
-        arr = self.geofile.getimagetopdown(width, int(height/4))
+        self.geodata = GeoFile(filename)
+        arr = self.geodata.getimagetopdown(width, int(height / 4))
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
         self.pixmaptopdown = QPixmap(qimg)
         self.pixmaptopdownhandle = self.addPixmap(self.pixmaptopdown)
 
-        arr = self.geofile.getimageunderground(width, height)
+        arr = self.geodata.getimageunderground(width, height)
         qimg = QImage(arr, arr.shape[1], arr.shape[0], QImage.Format_RGB888)#.rgbSwapped()
-        self.pixmap = QPixmap(qimg)
-        self.pixmaphandle = self.addPixmap(self.pixmap)
+        self.pixmapunderground = QPixmap(qimg)
+        self.pixmapundergroundhandle = self.addPixmap(self.pixmapunderground)
         self.pixmaptopdownhandle.moveBy(0, -self.pixmaptopdown.height()-20)
 
-        self.label_all = np.zeros([self.pixmap.height(), self.pixmap.width()])  #initiate label image
 
 
     def mousePressEvent(self, event):
@@ -74,9 +75,9 @@ class GraphicsScene(QGraphicsScene):
             print(event.scenePos().x(), event.scenePos().y())
 
             if event.scenePos().x()>=0 \
-                    and event.scenePos().x()<self.pixmap.width() \
+                    and event.scenePos().x()<self.pixmapunderground.width() \
                     and event.scenePos().y()>=0 \
-                    and event.scenePos().y()<self.pixmap.height():
+                    and event.scenePos().y()<self.pixmapunderground.height():
                 self.lastpos = event.pos()
                 self.poly = [self.lastpos]
             else:
@@ -92,9 +93,9 @@ class GraphicsScene(QGraphicsScene):
 
         if self.draw_switch == True \
                 and pos.x()>=0 \
-                and pos.x()<self.pixmap.width() \
+                and pos.x()<self.pixmapunderground.width() \
                 and pos.y()>=0 \
-                and pos.y()<self.pixmap.height():
+                and pos.y()<self.pixmapunderground.height():
             if self.lastpos is not None:
                 # show trace on the screen
                 path = QPainterPath()
@@ -115,9 +116,9 @@ class GraphicsScene(QGraphicsScene):
             self.draw_switch = False
 
             if pos.x()>=0 \
-            and pos.x()<self.pixmap.width() \
+            and pos.x()<self.pixmapunderground.width() \
             and pos.y()>=0 \
-            and pos.y()<self.pixmap.height():
+            and pos.y()<self.pixmapunderground.height():
                 label = self.dialog.gettext()   #ask for label
 
                 if label[1]==True and len(label[0])>0 and len(self.poly)>0:  #if user input a label
@@ -140,7 +141,7 @@ class GraphicsScene(QGraphicsScene):
                         self.addEllipse(self.poly[0].x(),self.poly[0].y(),2,2,pen=QPen(Qt.red))
                         x = self.poly[0].toPoint().x()
                         y = self.poly[0].toPoint().y()
-                    self.label_all[y, x] = int(label[0])
+                    self.geodata.manuallabel[y, x] = int(label[0])
 
             # remove the trace painted so far
             for p in self.pathset:
@@ -148,34 +149,29 @@ class GraphicsScene(QGraphicsScene):
 
     def export(self, filename):
         fw = open(filename, 'w')
-
-        for h in range(self.label_all.shape[0]):
-            for w in range(self.label_all.shape[1]):
-                if self.label_all[h,w]>0:
-                    points = self.geofile.getpoint(w, h)
-                    for p in points:
-                        np.savetxt(fw, np.append(p[0:-2],self.label_all[h,w]).reshape(1, -1), fmt='%s')
-
+        points, labels = self.geodata.get_annotated_point()
+        for i in range(len(points)):
+            np.savetxt(fw, np.append(points[i][0:-2],labels[i]).reshape(1, -1), fmt='%s')
         fw.close()
 
-    def getannotatedfeature(self):
-        feature = []
-        label = []
-        for h in range(self.label_all.shape[0]):
-            for w in range(self.label_all.shape[1]):
-                if self.label_all[h,w]>0:
-                    morefeature = self.geofile.getfeature(w, h)
-                    feature.extend(morefeature)
-                    label = label.extend([self.label_all[h,w]]*len(morefeature))
-        return feature, label
+
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Space:
-            if self.pixmaphandle is not None:
-                self.pixmaphandle.setZValue(1)
+            if self.pixmapundergroundhandle is not None:
+                self.pixmapundergroundhandle.setZValue(1)
 
 
     def keyReleaseEvent(self, event):
         if event.key() == Qt.Key_Space:
-            if self.pixmaphandle is not None:
-                self.pixmaphandle.setZValue(-1)
+            if self.pixmapundergroundhandle is not None:
+                self.pixmapundergroundhandle.setZValue(-1)
+
+    def showprediction(self):
+        arr = self.geodata.get_prediction(LMNN)
+        arr[:,:,3] = 150
+        qimg = QImage(arr.astype(np.uint8), arr.shape[1], arr.shape[0], QImage.Format_RGBA8888)  # .rgbSwapped()
+        self.pixmapprediction = QPixmap(qimg)
+        self.pixmappredictionhandle = self.addPixmap(self.pixmapprediction)
+
+        return

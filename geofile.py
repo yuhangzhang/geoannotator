@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 
-from geoinput import GeoInput
+from geodata import GeoData
 
-class GeoFile(GeoInput):
+class GeoFile(GeoData):
     def __init__(self, filename):
 
         if filename.endswith('shp'):

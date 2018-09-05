@@ -32,48 +32,57 @@ class AnnotationWindow(QWidget):
         self.filebutton.clicked.connect(self.openfile)
         self.dbbutton = QPushButton("load database")
         self.dbbutton.clicked.connect(self.loaddatabase)
-
+        self.predictbutton = QPushButton("predict")
+        self.predictbutton.clicked.connect(self.predict)
         self.exportbutton = QPushButton("export annotation")
         self.exportbutton.clicked.connect(self.export)
 
-        layout = QVBoxLayout()
-        buttonlayout = QHBoxLayout()
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.view)
+
+        buttonlayout = QVBoxLayout()
         buttonlayout.addWidget(self.filebutton)
         buttonlayout.addWidget(self.dbbutton)
+        buttonlayout.addWidget(self.predictbutton)
+        buttonlayout.addWidget(self.exportbutton)
         layout.addLayout(buttonlayout)
 
 
-        sublayout = QHBoxLayout()
-        sublayout.addWidget(self.view)
-
-        figure = Figure(figsize=(5, 10))
-
-        subplt = figure.add_subplot(1,4,1)
-        subplt.imshow(np.array(range(10)).reshape(10,1), cmap=plt.get_cmap('tab10'), extent=[0,1,0,10], origin='lower')
-        tick_gap = (subplt.get_ybound()[1] - subplt.get_ybound()[0])/10
-        subplt.set_yticks(np.linspace(subplt.get_ybound()[0]+tick_gap/2, subplt.get_ybound()[1]-tick_gap/2, 10))
-        subplt.set_yticklabels([
-            '1: Fresh bedrock Proterozoic',
-            '2: Moderately weathered bedrock Proterozoic',
-            '3: Very highly weathered bedrock Proterozoic',
-            '4: Semi-consolidated sediments Cenozoic',
-            '5: ',
-            '6: ',
-            '7: Semi-consolidated sediments Cenozoic',
-            '8: Bedrock moderately resistive Palaeozoic',
-            '9: Bedrock highly resistive Palaeozoic',
-            '10: Very highly weathered bedrock Palaeozoic'
-        ])
-        subplt.set_xticks([])
-        subplt.yaxis.tick_right()
 
 
-        static_canvas = FigureCanvas(figure)
 
-        sublayout.addWidget(static_canvas)
+        # sublayout = QHBoxLayout()
+        # sublayout.addWidget(self.view)
+        #
+        # figure = Figure(figsize=(5, 10))
+        #
+        # subplt = figure.add_subplot(1,4,1)
+        # subplt.imshow(np.array(range(10)).reshape(10,1), cmap=plt.get_cmap('tab10'), extent=[0,1,0,10], origin='lower')
+        # tick_gap = (subplt.get_ybound()[1] - subplt.get_ybound()[0])/10
+        # subplt.set_yticks(np.linspace(subplt.get_ybound()[0]+tick_gap/2, subplt.get_ybound()[1]-tick_gap/2, 10))
+        # subplt.set_yticklabels([
+        #     '1: Fresh bedrock Proterozoic',
+        #     '2: Moderately weathered bedrock Proterozoic',
+        #     '3: Very highly weathered bedrock Proterozoic',
+        #     '4: Semi-consolidated sediments Cenozoic',
+        #     '5: ',
+        #     '6: ',
+        #     '7: Semi-consolidated sediments Cenozoic',
+        #     '8: Bedrock moderately resistive Palaeozoic',
+        #     '9: Bedrock highly resistive Palaeozoic',
+        #     '10: Very highly weathered bedrock Palaeozoic'
+        # ])
+        # subplt.set_xticks([])
+        # subplt.yaxis.tick_right()
+        #
+        #
+        # static_canvas = FigureCanvas(figure)
+        #
+        # sublayout.addWidget(static_canvas)
+        #
+        # layout.addLayout(sublayout)
 
-        layout.addLayout(sublayout)
-        layout.addWidget(self.exportbutton)
         self.setLayout(layout)
         self.setWindowTitle("GeoAnnotator")
 
@@ -85,6 +94,9 @@ class AnnotationWindow(QWidget):
 
     def loaddatabase(self):
         self.scene.loaddatabase(800,400)
+
+    def predict(self):
+        self.scene.showprediction()
 
     def export(self):
         fname = QFileDialog.getSaveFileName(self, 'Save to')
