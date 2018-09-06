@@ -36,6 +36,8 @@ class AnnotationWindow(QWidget):
         self.predictbutton.clicked.connect(self.predict)
         self.exportbutton = QPushButton("export annotation")
         self.exportbutton.clicked.connect(self.export)
+        self.exportmodelbutton = QPushButton("export model")
+        self.exportmodelbutton.clicked.connect(self.exportmodel)
 
 
         layout = QHBoxLayout()
@@ -46,6 +48,7 @@ class AnnotationWindow(QWidget):
         buttonlayout.addWidget(self.dbbutton)
         buttonlayout.addWidget(self.predictbutton)
         buttonlayout.addWidget(self.exportbutton)
+        buttonlayout.addWidget(self.exportmodelbutton)
         layout.addLayout(buttonlayout)
 
 
@@ -104,6 +107,8 @@ class AnnotationWindow(QWidget):
         if len(fname[0]) > 0:
             self.scene.export(fname[0])
 
+    def exportmodel(self):
+        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

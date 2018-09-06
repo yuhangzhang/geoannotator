@@ -75,7 +75,7 @@ class GraphicsScene(QGraphicsScene):
         if event.button() == Qt.LeftButton:
             self.draw_switch = True
 
-            print(event.scenePos().x(), event.scenePos().y())
+            #print(event.scenePos().x(), event.scenePos().y())
 
             if event.scenePos().x()>=0 \
                     and event.scenePos().x()<self.pixmapunderground.width() \
@@ -172,7 +172,7 @@ class GraphicsScene(QGraphicsScene):
 
     def showprediction(self):
         arr = self.geodata.get_prediction(GeoLMNN(3))
-        arr[:,:,3] = 150
+        arr[:,:,3] = 255
         qimg = QImage(arr.astype(np.uint8), arr.shape[1], arr.shape[0], QImage.Format_RGBA8888)  # .rgbSwapped()
         self.pixmapprediction = QPixmap(qimg)
         self.pixmappredictionhandle = self.addPixmap(self.pixmapprediction)
