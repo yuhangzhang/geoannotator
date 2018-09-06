@@ -6,8 +6,10 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import psycopg2
 import cv2
-
+from metric_learn import LMNN
 import time
+from sklearn.neighbors import KNeighborsClassifier
+import matplotlib.pyplot as plt
 
 class GeoData():
     def __init__(self, inputrecord):
@@ -34,6 +36,8 @@ class GeoData():
         self.manuallabel = np.zeros([0,0])
 
     def getimagetopdown(self, width, height):
+
+
         c = self.point[:, 10:12].astype(float)
         c = np.linalg.norm(c - c[0,:],axis=1)
         a = self.point[:,-2].astype(float)-float(self.point[0,-2])
@@ -59,6 +63,8 @@ class GeoData():
 
     # visualise the raw points as an RGB image of specified size, each pixel may correspond to multiple points
     def getimageunderground(self, width, height):
+        self.widthunderground = width
+        self.heightunderground = height
 
         self.manuallabel = np.zeros([height, width], dtype=int)
 
@@ -244,8 +250,114 @@ class GeoData():
 
     def get_prediction(self, model):
         self.model = model
-        x,y = self.get_annotated_feature()
-        print(x,y)
-        self.model.fit(x,y)
+        X, y = self.get_annotated_feature()
+
+
+        self.model.fit(np.array(X), y)
         self.prediction = self.model.predict(self.feature)
-        return
+
+        model = KNeighborsClassifier()
+        model.fit(X, y)
+        self.prediction = model.predict(self.feature)
+
+        img = np.zeros([self.heightunderground, self.widthunderground, 4], dtype=np.uint8)
+
+        for i in range(len(self.point)):
+            p = self.point[i]
+            if 1==1:
+                inversedh = self.heightunderground - int(float(p[-1])) - 1
+                originalw = int(float(p[-2]))
+
+
+                img[inversedh, originalw, 0] = self.prediction[i]
+
+        updis = np.zeros([self.heightunderground, self.widthunderground], dtype=np.int)
+        img_interpolate = np.zeros([self.heightunderground, self.widthunderground, 4], dtype=np.float32)
+
+        vboundary = np.zeros([2,self.widthunderground],dtype=np.int)
+        vboundary[1,:] = self.heightunderground
+
+        for w in range(img.shape[1]):
+            dis = 0
+            lastpoint = img[0, w, :]
+            for h in range(img.shape[0]):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    dis = dis + 1
+                    img_interpolate[h, w, :] = lastpoint
+                    updis[h, w] = dis
+                else:
+                    img_interpolate[h, w, :] = img[h, w, :]
+                    dis = 0
+                    lastpoint = img[h, w, :]
+                    if vboundary[0,w]<h:
+                        vboundary[0, w]=h
+
+        for w in range(img.shape[1]):
+            dis = 0
+            lastpoint = img[-1, w, :]
+            for h in reversed(range(img.shape[0])):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and abs(
+                        img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
+                    if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
+                        img_interpolate[h, w, :] = lastpoint
+                    else:
+                        img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
+                                    dis + updis[h, w])
+                    dis = dis + 1
+                elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    break
+                else:
+                    dis = 0
+                    lastpoint = img[h, w, :]
+                    if vboundary[1,w]>h:
+                        vboundary[1, w]=h
+
+        img = img_interpolate
+        img_interpolate = np.zeros([self.heightunderground, self.widthunderground, 4], dtype=np.float32)
+
+        # linear intepolation along horizontal direction
+        for h in range(img.shape[0]):
+            dis = 0
+            lastpoint = img[h, 0, :]
+            for w in range(img.shape[1]):
+
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and h<=vboundary[1,w] and h>=vboundary[0,w]:
+                    dis = dis + 1
+                    img_interpolate[h, w, :] = lastpoint
+                    updis[h, w] = dis
+                else:
+                    img_interpolate[h, w, :] = img[h, w, :]
+                    dis = 0
+                    lastpoint = img[h, w, :]
+
+        for h in range(img.shape[0]):
+            dis = 0
+            dis = 0
+            lastpoint = img[h, -1, :]
+            for w in reversed(range(img_interpolate.shape[1])):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and abs(
+                        img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
+                    if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
+                        img_interpolate[h, w, :] = lastpoint
+                    elif h<=vboundary[1,w] and h>=vboundary[0,w]:
+                        img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
+                                    dis + updis[h, w])
+                    else:
+                        img_interpolate[h,w,:] = 0
+                    dis = dis + 1
+                elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    break
+                else:
+                    dis = 0
+                    lastpoint = img[h, w, :]
+
+        img_interpolate = np.round(img_interpolate).astype(int)
+
+        img = np.zeros([self.heightunderground,self.widthunderground,4], dtype=np.uint8)
+
+        for i in range(img_interpolate.shape[0]):
+            for j in range(img_interpolate.shape[1]):
+                if img_interpolate[i,j,0]>0:
+                    img[i, j, 0:3] = [c*255 for c in plt.get_cmap('tab10').colors[img_interpolate[i,j,0]]]
+
+        return img

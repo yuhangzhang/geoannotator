@@ -24,6 +24,9 @@ from dialogdropdown import DialogDropDown
 
 from metric_learn import LMNN
 
+
+from geolmnn import GeoLMNN
+
 class GraphicsScene(QGraphicsScene):
     def __init__(self):
         super(GraphicsScene, self).__init__()
@@ -168,7 +171,7 @@ class GraphicsScene(QGraphicsScene):
                 self.pixmapundergroundhandle.setZValue(-1)
 
     def showprediction(self):
-        arr = self.geodata.get_prediction(LMNN)
+        arr = self.geodata.get_prediction(GeoLMNN(3))
         arr[:,:,3] = 150
         qimg = QImage(arr.astype(np.uint8), arr.shape[1], arr.shape[0], QImage.Format_RGBA8888)  # .rgbSwapped()
         self.pixmapprediction = QPixmap(qimg)
