@@ -26,10 +26,11 @@ class GeoData():
         self.maxh = self.point[:, -1].astype(float).max()
         self.maxw = self.point[:, -2].astype(float).max()
 
+        print(self.minh, self.minw, self.maxh, self.maxw)
+
 
         self.feature = np.hstack([self.point[:,2:10], self.point[:,12].reshape(-1, 1), self.point[:,14].reshape(-1, 1)])
-        #self.feature = self.point[:,[x for x in range(2,10)].extend([12,14])]
-        #print(self.feature.shape)
+
         self.whitener = preprocessing.StandardScaler().fit(self.feature)
         self.feature = self.whitener.transform(self.feature)
 
@@ -191,7 +192,7 @@ class GeoData():
                 originalw = int(float(p[-2]))
                 img[inversedh, originalw, 0] = self.prediction[i]
 
-        img_interpolate = self.geointerpolation(img).round().astype(int)
+        img_interpolate = self.geointerpolation_label(img).round().astype(int)
 
         img = np.zeros([self.heightunderground,self.widthunderground,4], dtype=np.uint8)
 
@@ -284,6 +285,100 @@ class GeoData():
                     elif h<=vboundary[1,w] and h>=vboundary[0,w]:
                         img_interpolate[h, w, :] = (img_interpolate[h, w, :] * dis + lastpoint * updis[h, w]) / (
                                     dis + updis[h, w])
+                    else:
+                        img_interpolate[h,w,:] = 0
+                    dis = dis + 1
+                elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    break
+                else:
+                    dis = 0
+                    lastpoint = img[h, w, :]
+
+        return np.squeeze(img_interpolate)
+
+
+    @staticmethod
+    def geointerpolation_label(img):
+        height = img.shape[0]
+        width = img.shape[1]
+        if len(img.shape)==3:
+            depth = img.shape[2]
+        else:
+            depth = 1
+
+        # fill in pixels which has no points
+        # linear intepolation along vertical direction
+        updis = np.zeros([height, width], dtype=np.int)
+        img_interpolate = np.zeros([height, width, depth], dtype=np.float32)
+
+        vboundary = np.zeros([2,width],dtype=np.int)
+        vboundary[1,:] = height
+
+        for w in range(img.shape[1]):
+            dis = 0
+            lastpoint = img[0, w, :]
+            for h in range(img.shape[0]):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    dis = dis + 1
+                    img_interpolate[h, w, :] = lastpoint
+                    updis[h, w] = dis
+                else:
+                    img_interpolate[h, w, :] = img[h, w, :]
+                    dis = 0
+                    lastpoint = img[h, w, :]
+                    if vboundary[0,w]<h:
+                        vboundary[0, w]=h
+
+        for w in range(img.shape[1]):
+            dis = 0
+            lastpoint = img[-1, w, :]
+            for h in reversed(range(img.shape[0])):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and abs(
+                        img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
+                    if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
+                        img_interpolate[h, w, :] = lastpoint
+                    else:
+                        if dis<updis[h,w]:
+                            img_interpolate[h, w, :] = lastpoint
+                    dis = dis + 1
+                elif abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0:
+                    break
+                else:
+                    dis = 0
+                    lastpoint = img[h, w, :]
+                    if vboundary[1,w]>h:
+                        vboundary[1, w]=h
+
+        img = img_interpolate
+        img_interpolate = np.zeros([height, width, depth], dtype=np.float32)
+
+        # linear intepolation along horizontal direction
+        for h in range(img.shape[0]):
+            dis = 0
+            lastpoint = img[h, 0, :]
+            for w in range(img.shape[1]):
+
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and h<=vboundary[1,w] and h>=vboundary[0,w]:
+                    dis = dis + 1
+                    img_interpolate[h, w, :] = lastpoint
+                    updis[h, w] = dis
+                else:
+                    img_interpolate[h, w, :] = img[h, w, :]
+                    dis = 0
+                    lastpoint = img[h, w, :]
+
+        for h in range(img.shape[0]):
+            dis = 0
+            dis = 0
+            lastpoint = img[h, -1, :]
+            for w in reversed(range(img_interpolate.shape[1])):
+                if abs(img[h, w, 0]) + abs(img[h, w, 1]) + abs(img[h, w, 2]) == 0 and abs(
+                        img_interpolate[h, w, 0]) + abs(img_interpolate[h, w, 1]) + abs(img_interpolate[h, w, 2]) > 0:
+                    if abs(lastpoint[0]) + abs(lastpoint[1]) + abs(lastpoint[2]) == 0:
+                        img_interpolate[h, w, :] = lastpoint
+                    elif h<=vboundary[1,w] and h>=vboundary[0,w]:
+                        if dis<updis[h,w]:
+                            img_interpolate[h, w, :] = lastpoint                        
                     else:
                         img_interpolate[h,w,:] = 0
                     dis = dis + 1

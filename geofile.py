@@ -12,7 +12,7 @@ class GeoFile(GeoData):
 
         if filename.endswith('shp'):
             inputfile = sf.Reader(filename)
-            inputrecord = np.array(inputfile.records()[1:10000])
+            inputrecord = np.array(inputfile.records())
 
             super(GeoFile, self).__init__(inputrecord)
 
